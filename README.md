@@ -25,3 +25,4 @@ I am still learning Pulumi, and also learning AWS' public offerings, so this wil
 1. AWS Budgets alert on costs, and ideally trigger the Andon cord if necessary.
 1. **TODO:** still not sure of the best way to set up a pipeline to deploy changes to this infrastructure.
 
+[fuzzy]: https://github.com/SamRoberts/fuzzy_rust
