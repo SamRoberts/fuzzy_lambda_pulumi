@@ -2,16 +2,9 @@ import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 
-const lambdaExecutionAssumeRolePolicy = aws.iam.getPolicyDocument({
-    statements: [{
-        effect: "Allow",
-        principals: [{
-            type: "Service",
-            identifiers: ["lambda.amazonaws.com"],
-        }],
-        actions: ["sts:AssumeRole"],
-    }],
-});
+import * as util from "./util";
+
+const lambdaExecutionAssumeRolePolicy = util.assumeRolePolicyJson("lambda");
 
 const lambdaExecutionPolicy = aws.iam.getPolicyDocument({
     statements: [{
@@ -23,14 +16,14 @@ const lambdaExecutionPolicy = aws.iam.getPolicyDocument({
         ],
         resources: ["arn:aws:logs:*:*:*"], // TODO can I lock this down a bit more?
     }],
-});
+}).then(policy => policy.json);
 
 const lambdaExecutionRole = new aws.iam.Role("FuzzyLamdaExecutionRole", {
     name: "FuzzyLambdaExecutionRole",
-    assumeRolePolicy: lambdaExecutionAssumeRolePolicy.then(policy => policy.json),
+    assumeRolePolicy: lambdaExecutionAssumeRolePolicy,
     inlinePolicies: [{
         name: "FuzzyLambdaExecutionPolicy",
-        policy: lambdaExecutionPolicy.then(policy => policy.json),
+        policy: lambdaExecutionPolicy,
     }],
 });
 
