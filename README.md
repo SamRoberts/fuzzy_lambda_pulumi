@@ -36,6 +36,16 @@ Ideally we would find solutions to minimize the following, or at least reduce an
 1. Finish setting up codestar connection for pipeline source stage.
 1. Running pulumi up after every config change.
 
+Issues with current setup
+-------------------------
+
+1. All of the planned items above which I haven't actually set up yet.
+1. There is a bootstrapping problem with the pipeline and lambda:
+    1. The lambda refers to a S3 key which won't be created until ...
+    1. ... the pipeline is created and has run at least once.
+    1. This ends up working because pulumi does not treat definition
+       as a single atomic entity, but it's hacky.
+
 Minor TODOs
 -----------
 

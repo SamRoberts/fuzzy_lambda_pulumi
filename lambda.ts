@@ -27,11 +27,13 @@ const lambdaExecutionRole = new aws.iam.Role("FuzzyLamdaExecutionRole", {
     }],
 });
 
+export const lambdaCodeBucket = new aws.s3.BucketV2("FuzzyLambdaCodeBucket", {});
+
 const lambdaFunction = new aws.lambda.Function("FuzzyLambda", {
     name: "FuzzyLambda",
     packageType: "Zip",
-    // TODO how to make this code reference more robust?
-    code: new pulumi.asset.FileArchive("../fuzzy_rust/target/lambda/fuzzy_lambda/bootstrap.zip"),
+    s3Bucket: lambdaCodeBucket.bucket,
+    s3Key: "FuzzyLambdaCode",
     handler: "bootstrap",
     role: lambdaExecutionRole.arn,
     runtime: "provided.al2",

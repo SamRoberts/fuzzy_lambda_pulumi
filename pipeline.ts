@@ -3,6 +3,7 @@ import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 
 import * as util from "./util";
+import * as lambda from "./lambda";
 
 const githubConnection = new aws.codestarconnections.Connection("FuzzyPipelineSource", {
     providerType: "GitHub"
@@ -20,8 +21,11 @@ const bucketKeyAlias = new aws.kms.Alias("FuzzyPipelineBucketKeyAlias", {
 
 const assumeBuildRolePolicy = util.assumeRolePolicyJson("codebuild");
 
-const buildExecutionPolicy = pulumi.all([bucket.arn, bucketKey.arn])
-    .apply(([bucketArn, bucketKeyArn]) => aws.iam.getPolicyDocument({
+const buildExecutionPolicy = pulumi.all([
+    bucket.arn,
+    bucketKey.arn,
+]).apply(([bucketArn, bucketKeyArn]) =>
+    aws.iam.getPolicyDocument({
         statements: [
             {
                 effect: "Allow",
@@ -88,8 +92,13 @@ const build = new aws.codebuild.Project("FuzzyPipelineBuild", {
 
 const assumeRolePolicy = util.assumeRolePolicyJson("codepipeline");
 
-const executionPolicy = pulumi.all([bucket.arn, bucketKey.arn, githubConnection.arn])
-    .apply(([bucketArn, bucketKeyArn, githubArn]) => aws.iam.getPolicyDocument({
+const executionPolicy = pulumi.all([
+    bucket.arn,
+    bucketKey.arn,
+    githubConnection.arn,
+    lambda.lambdaCodeBucket.arn,
+]).apply(([bucketArn, bucketKeyArn, githubArn, codeBucketArn]) =>
+    aws.iam.getPolicyDocument({
         statements: [
             {
                 effect: "Allow",
@@ -103,6 +112,8 @@ const executionPolicy = pulumi.all([bucket.arn, bucketKey.arn, githubConnection.
                 resources: [
                     bucketArn,
                     `${bucketArn}/*`,
+                    codeBucketArn,
+                    `${codeBucketArn}/*`,
                 ],
             },
             {
@@ -177,6 +188,22 @@ export const definition = new aws.codepipeline.Pipeline("FuzzyPipeline", {
                 version: "1",
                 configuration: {
                     ProjectName: "FuzzyPipelineBuild",
+                },
+            }],
+        },
+        {
+            name: "Deploy",
+            actions: [{
+                name: "Deploy",
+                category: "Deploy",
+                owner: "AWS",
+                provider: "S3",
+                version: "1",
+                inputArtifacts: ["build_output"],
+                configuration: {
+                    BucketName: lambda.lambdaCodeBucket.bucket,
+                    ObjectKey: "FuzzyLambdaCode",
+                    Extract: "false",
                 },
             }],
         },
